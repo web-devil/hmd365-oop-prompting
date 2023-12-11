@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Snake Game</title>
+</head>
+<body>
+<div id="snake"></div>
+
+<script>
+class SnakeGame {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.gameField = null;
+        this.snake = null;
+        this.food = null;
+        this.gameInterval = null;
+        this.isRunning = false;
+        this.init();
+    }
+
+    init() {
+        this.createStyles();
+        this.createGameField();
+        this.snake = new Snake(this.gameField);
+        this.food = new Food(this.gameField);
+        this.createControls();
+        this.attachEventListeners();
+    }
+
+    createStyles() {
+        const style = document.createElement('style');
+        style.innerHTML = `
+            #gameField {
+                width: 400px;
+                height: 400px;
+                border: 1px solid black;
+                position: relative;
+            }
+            .snakeSegment {
+                width: 20px;
+                height: 20px;
+                background-color: green;
+                position: absolute;
+            }
+            .food {
+                width: 20px;
+                height: 20px;
+                background-color: red;
+                position: absolute;
+            }`;
+        document.head.appendChild(style);
+    }
+
+    createGameField() {
+        this.gameField = document.createElement('div');
+        this.gameField.id = 'gameField';
+        this.container.appendChild(this.gameField);
+    }
+
+    createControls() {
+        const startButton = document.createElement('button');
+        startButton.textContent = 'Start Game';
+        startButton.onclick = () => this.start();
+
+        const pauseButton = document.createElement('button');
+        pauseButton.textContent = 'Pause Game';
+        pauseButton.onclick = () => this.pause();
+
+        this.container.appendChild(startButton);
+        this.container.appendChild(pauseButton);
+    }
+
+    attachEventListeners() {
+        window.addEventListener('keydown', e => {
+            switch (e.key) {
+                case 'ArrowUp': this.snake.changeDirection('UP'); break;
+                case 'ArrowDown': this.snake.changeDirection('DOWN'); break;
+                case 'ArrowLeft': this.snake.changeDirection('LEFT'); break;
+                case 'ArrowRight': this.snake.changeDirection('RIGHT'); break;
+            }
+        });
+    }
+
+    start() {
+        if (!this.isRunning) {
+            this.isRunning = true;
+            this.gameInterval = setInterval(() => this.update(), 200);
+        }
+    }
+
+    pause() {
+        if (this.isRunning) {
+            clearInterval(this.gameInterval);
+            this.isRunning = false;
+        }
+    }
+
+    update() {
+        this.snake.move();
+        if (this.snake.checkCollision()) {
+            this.endGame();
+            return;
+        }
+        if (this.snake.eat(this.food.position)) {
+            this.food.placeRandomly();
+        }
+        this.render();
+    }
+
+    render() {
+        this.snake.draw();
+        this.food.draw();
+    }
+
+    endGame() {
+        clearInterval(this.gameInterval);
+        alert("Game Over!");
+        this.snake.reset();
+        this.start();
+    }
+}
+
+class Snake {
+  constructor(gameField) {
+        this.gameField = gameField;
+        this.segments = [{ x: 0, y: 0 }];
+        this.direction = { x: 20, y: 0 }; // Initial direction
+        this.newDirection = { x: 20, y: 0 }; // Direction after change
+    }
+
+    move() {
+        const head = { 
+            x: this.segments[0].x + this.newDirection.x, 
+            y: this.segments[0].y + this.newDirection.y 
+        };
+        this.segments.unshift(head);
+        // Remove the last segment if the new head position does not overlap with food
+        this.segments.pop();
+        this.direction = this.newDirection; // Update the current direction
+    }
+
+    changeDirection(newDirection) {
+        const directions = {
+            'UP': { x: 0, y: -20 },
+            'DOWN': { x: 0, y: 20 },
+            'LEFT': { x: -20, y: 0 },
+            'RIGHT': { x: 20, y: 0 }
+        };
+        const oppositeDirection = {
+            'UP': 'DOWN',
+            'DOWN': 'UP',
+            'LEFT': 'RIGHT',
+            'RIGHT': 'LEFT'
+        };
+        if (oppositeDirection[newDirection] !== this.currentDirection) {
+            this.newDirection = directions[newDirection];
+        }
+    }
+
+    checkCollision() {
+        const head = this.segments[0];
+        for (let i = 1; i < this.segments.length; i++) {
+            if (head.x === this.segments[i].x && head.y === this.segments[i].y) {
+                return true;
+            }
+        }
+        return head.x < 0 || head.x >= 400 || head.y < 0 || head.y >= 400;
+    }
+
+    eat(position) {
+        const head = this.segments[0];
+        if (head.x === position.x && head.y === position.y) {
+            this.segments.push({ ...this.segments[this.segments.length - 1] });
+            return true;
+        }
+        return false;
+    }
+
+    draw() {
+        this.gameField.innerHTML = '';
+        this.segments.forEach(segment => {
+            const segmentElement = document.createElement('div');
+            segmentElement.style.left = segment.x + 'px';
+            segmentElement.style.top = segment.y + 'px';
+            segmentElement.classList.add('snakeSegment');
+            this.gameField.appendChild(segmentElement);
+        });
+    }
+
+    reset() {
+        this.segments = [{ x: 0, y: 0 }];
+        this.direction = { x: 20, y: 0 };
+        this.newDirection = { x: 20, y: 0 };
+    }
+}
+
+class Food {
+    constructor(gameField) {
+        this.gameField = gameField;
+        this.position = { x: 60, y: 60 };
+    }
+
+    placeRandomly() {
+        const gridSize = 20;
+        const maxGridPosition = 19;
+        this.position = {
+            x: Math.floor(Math.random() * maxGridPosition) * gridSize,
+            y: Math.floor(Math.random() * maxGridPosition) * gridSize
+        };
+    }
+
+    draw() {
+        const foodElement = document.createElement('div');
+        foodElement.style.left = this.position.x + 'px';
+        foodElement.style.top = this.position.y + 'px';
+        foodElement.classList.add('food');
+        this.gameField.appendChild(foodElement);
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    new SnakeGame('snake');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Snake Spiel</title>
+<style>
+  #spielfeld {
+    width: 400px;
+    height: 400px;
+    border: 1px solid black;
+    position: relative;
+  }
+  .snake {
+    width: 20px;
+    height: 20px;
+    background-color: green;
+    position: absolute;
+  }
+  .essen {
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    position: absolute;
+  }
+</style>
+</head>
+<body>
+<button onclick="starteSpiel()">Start Game</button>
+<button onclick="pauseSpiel()">Pause Game</button>
+<div id="spielfeld"></div>
+
+<script>
+  let spielfeld = document.getElementById('spielfeld');
+  let schlange = [{x: 0, y: 0}];
+  let richtung = {x: 20, y: 0}; // Increased to 20 to match the segment size
+  let essen = {x: 60, y: 60};
+  let spielIntervall;
+
+  let spielLaeuft = false;
+
+function starteSpiel() {
+  if (!spielLaeuft) {
+    spielIntervall = setInterval(updateSpiel, 200);
+    spielLaeuft = true;
+  } else {
+    pauseSpiel();
+  }
+}
+
+function pauseSpiel() {
+  if (spielLaeuft) {
+    clearInterval(spielIntervall);
+    spielLaeuft = false;
+  }
+}
+
+  function updateSpiel() {
+    bewegeSchlange();
+    pruefeEssen();
+    pruefeKollision();
+    zeichneSchlange();
+    zeichneEssen();
+  }
+
+  function zeichneSchlange() {
+    spielfeld.innerHTML = '';
+    schlange.forEach(segment => {
+        const schlangeElement = document.createElement('div');
+        schlangeElement.style.left = segment.x + 'px';
+        schlangeElement.style.top = segment.y + 'px';
+        schlangeElement.classList.add('snake');
+        spielfeld.appendChild(schlangeElement);
+    });
+  }
+
+  function zeichneEssen() {
+    const essenElement = document.createElement('div');
+    essenElement.style.left = essen.x + 'px';
+    essenElement.style.top = essen.y + 'px';
+    essenElement.classList.add('essen');
+    spielfeld.appendChild(essenElement);
+  }
+
+  window.addEventListener('keydown', e => {
+  switch (e.key) {
+    case 'ArrowUp':
+      if (richtung.y === 0) richtung = { x: 0, y: -20 };
+      break;
+    case 'ArrowDown':
+      if (richtung.y === 0) richtung = { x: 0, y: 20 };
+      break;
+    case 'ArrowLeft':
+      if (richtung.x === 0) richtung = { x: -20, y: 0 };
+      break;
+    case 'ArrowRight':
+      if (richtung.x === 0) richtung = { x: 20, y: 0 };
+      break;
+  }
+});
+
+  function pruefeEssen() {
+  if (schlange[0].x === essen.x && schlange[0].y === essen.y) {
+    // Add a new segment at the end of the snake
+    schlange.push({ ...schlange[schlange.length - 1] });
+    platziereEssen();
+  }
+}
+
+function bewegeSchlange() {
+  let kopf = { x: schlange[0].x + richtung.x, y: schlange[0].y + richtung.y };
+  schlange.unshift(kopf); // Add the new head position to the beginning of the snake array
+
+  // Only remove the last segment if the snake did not just eat food
+  if (schlange[0].x !== essen.x || schlange[0].y !== essen.y) {
+    schlange.pop(); // Remove the last segment of the snake
+  }
+}
+
+
+  function pruefeKollision() {
+    for (let i = 1; i < schlange.length; i++) {
+      if (schlange[i].x === schlange[0].x && schlange[i].y === schlange[0].y) {
+        beendeSpiel();
+        return;
+      }
+    }
+    if (schlange[0].x < 0 || schlange[0].x >= 400 || schlange[0].y < 0 || schlange[0].y >= 400) {
+      beendeSpiel();
+    }
+  }
+
+  function platziereEssen() {
+    essen = {
+      x: Math.floor(Math.random() * 20) * 20,
+      y: Math.floor(Math.random() * 20) * 20
+    };
+  }
+
+  function beendeSpiel() {
+    clearInterval(spielIntervall);
+    alert("Spiel vorbei!");
+    schlange = [{x: 0, y: 0}];
+    richtung = {x: 20, y: 0};
+    starteSpiel();
+  }
+
+</script>
+</body>
+</html>
